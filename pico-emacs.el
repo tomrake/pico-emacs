@@ -23,3 +23,15 @@
 (defun is-alive-openocd-server()
   "Test if the openocd server is running."
   (process-live-p (get-process "openocd-server")))
+
+(defun upload-elf(elf)
+  "Upload an elf file to the pico"
+  (if (file-exists-p elf)
+      (make-process :name "openocd-upload"
+		    :command (append (list openocd-exec) interface-type target-type
+				     (list "-c" "adapter speed 5000" "-c" (concat "program " elf " verify reset exit")))
+		    :buffer "*openocd-upload*"
+		    :sentinel 'pico-sentinel)
+
+    (format "file %s cannot be found." elf))) 
+
