@@ -1,6 +1,23 @@
+(defcustom pico-uart "*pico-uart*"
+  "The buffer name for the pico uart connection."
+  :type 'string
+  :group 'pico-emacs)
+
+(defcustom pico-uart-connection-string "minicom -b 115200 -o -D /dev/ttyACM0\n"
+  "The buffer name for the pico uart connection."
+  :type 'string
+  :group 'pico-emacs)
+
+
 (defun pico-sentinel (process event)
    (princ
      (format "Process: %s had the event '%s'" process event)))
+
+(defun kill-buffer-on-exit (process event)
+  (when (string-equal "finished\n" event)
+    (unless keep-buffer-on-exit 
+      (kill-buffer (process-buffer process)))))
+(defvar keep-buffer-on-exit t "Don't kill the process buffer on job finish.")
 
 (defvar target-type (list "-f" "target/rp2350.cfg") "openocd target")
 
@@ -31,7 +48,17 @@
 		    :command (append (list openocd-exec) interface-type target-type
 				     (list "-c" "adapter speed 5000" "-c" (concat "program " elf " verify reset exit")))
 		    :buffer "*openocd-upload*"
-		    :sentinel 'pico-sentinel)
+		    :sentinel 'kill-buffer-on-exit)
 
     (format "file %s cannot be found." elf))) 
 
+
+(defun open-pico-uart-terminal()
+  "open a connection to the pico uart."
+  (interactive)
+  (vterm pico-uart)
+  (find-buffer-visiting pico-uart)
+  (seq-do
+   #'(lambda (ch)
+       (vterm-send-key (char-to-string ch)))
+   pico-uart-connection-string))  
